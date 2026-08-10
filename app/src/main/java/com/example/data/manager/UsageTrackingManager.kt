@@ -22,13 +22,17 @@ class UsageTrackingManager(
      */
     fun hasUsageAccessPermission(): Boolean {
         if (usageStatsManager == null) return false
-        val now = System.currentTimeMillis()
-        val stats = usageStatsManager.queryUsageStats(
-            UsageStatsManager.INTERVAL_DAILY,
-            now - 1000 * 60,
-            now
-        )
-        return !stats.isNullOrEmpty()
+        return try {
+            val now = System.currentTimeMillis()
+            val stats = usageStatsManager.queryUsageStats(
+                UsageStatsManager.INTERVAL_DAILY,
+                now - 1000 * 60,
+                now
+            )
+            !stats.isNullOrEmpty()
+        } catch (e: Exception) {
+            false
+        }
     }
 
     /**

@@ -2,7 +2,6 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,15 +19,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AppBlocking
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.BugReport
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Nightlight
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,13 +41,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.ui.DashboardUiState
 
 @Composable
 fun DashboardScreen(
     state: DashboardUiState,
-    onNavigateToFocus: () -> Unit,
     onNavigateToProtectedApps: () -> Unit,
     onNavigateToStats: () -> Unit,
     onNavigateToSchedule: () -> Unit,
@@ -172,13 +165,6 @@ fun DashboardScreen(
                         text = "Remaining: ${remMins / 60}h ${remMins % 60}m",
                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold)
                     )
-                    if (state.earnedMinutes > 0) {
-                        Text(
-                            text = "+${state.earnedMinutes}m earned",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFF10B981)
-                        )
-                    }
                 }
             }
         }
@@ -193,9 +179,10 @@ fun DashboardScreen(
                 shape = RoundedCornerShape(18.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Focus Today", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Today's Usage", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text("📚 ${state.earnedMinutes}m", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
+                    val usedMins = state.totalUsedSeconds / 60
+                    Text("🎮 ${usedMins / 60}h ${usedMins % 60}m", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                 }
             }
             Card(
@@ -208,20 +195,6 @@ fun DashboardScreen(
                     Text("${state.sessionCount}", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                 }
             }
-        }
-
-        // Main Action Buttons
-        Button(
-            onClick = onNavigateToFocus,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp)
-                .testTag("dashboard_start_focus_button"),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Icon(Icons.Default.MenuBook, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Start Focus Session", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
         }
 
         Row(

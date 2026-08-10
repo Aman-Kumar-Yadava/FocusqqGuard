@@ -18,14 +18,11 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val navigateTo = intent.getStringExtra("navigate_to")
-        val initialRoute = if (navigateTo == "focus_session") Destinations.FOCUS_SESSION else Destinations.DASHBOARD
-
         setContent {
             MyApplicationTheme {
                 FocusGuardApp(
                     viewModel = viewModel,
-                    initialRoute = initialRoute
+                    initialRoute = Destinations.DASHBOARD
                 )
             }
         }
@@ -36,5 +33,3 @@ class MainActivity : ComponentActivity() {
         viewModel.refreshHealthStatus()
     }
 }
-
-

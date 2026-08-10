@@ -8,7 +8,6 @@ data class AppSettingsEntity(
     @PrimaryKey val id: Int = 1,
     val guardianPinHash: String = "",
     val isPinSet: Boolean = false,
-    val allowEarnedTime: Boolean = true,
     val globalNightLockEnabled: Boolean = true,
     val nightLockStartHour: Int = 22,
     val nightLockStartMinute: Int = 30,

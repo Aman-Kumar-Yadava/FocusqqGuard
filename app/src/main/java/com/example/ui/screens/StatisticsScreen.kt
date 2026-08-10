@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun StatisticsScreen(
     todayUsedSeconds: Long,
-    earnedMinutes: Int,
     sessionCount: Int
 ) {
     Column(
@@ -36,7 +35,7 @@ fun StatisticsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Gaming & Focus Statistics",
+            text = "Gaming Usage Statistics",
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
         )
 
@@ -52,7 +51,6 @@ fun StatisticsScreen(
 
                 val usedMins = todayUsedSeconds / 60
                 StatRow("Gaming Time Today", "${usedMins / 60}h ${usedMins % 60}m")
-                StatRow("Earned Focus Time", "+${earnedMinutes}m")
                 StatRow("Gaming Sessions Count", "$sessionCount sessions")
                 StatRow("Longest Session", if (sessionCount > 0) "${usedMins.coerceAtMost(45)} mins" else "0 mins")
                 StatRow("Average Session", if (sessionCount > 0) "${(usedMins / sessionCount)} mins" else "0 mins")

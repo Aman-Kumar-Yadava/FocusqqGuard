@@ -3,7 +3,6 @@ package com.example.data.repository
 import com.example.data.db.dao.FocusGuardDao
 import com.example.data.db.entities.AppSettingsEntity
 import com.example.data.db.entities.DailyUsageEntity
-import com.example.data.db.entities.FocusSessionEntity
 import com.example.data.db.entities.GamingSessionEntity
 import com.example.data.db.entities.ProtectedAppEntity
 import kotlinx.coroutines.flow.Flow
@@ -56,18 +55,6 @@ class FocusGuardRepository(private val dao: FocusGuardDao) {
 
     fun getGamingSessionsForDate(dateString: String): Flow<List<GamingSessionEntity>> {
         return dao.getGamingSessionsForDate(dateString)
-    }
-
-    suspend fun addFocusSession(session: FocusSessionEntity) {
-        dao.insertFocusSession(session)
-    }
-
-    fun getAllFocusSessions(): Flow<List<FocusSessionEntity>> {
-        return dao.getAllFocusSessions()
-    }
-
-    fun getTodayEarnedGamingMinutes(dateString: String): Flow<Int?> {
-        return dao.getEarnedGamingMinutesForDateFlow(dateString)
     }
 
     suspend fun getAppSettings(): AppSettingsEntity {

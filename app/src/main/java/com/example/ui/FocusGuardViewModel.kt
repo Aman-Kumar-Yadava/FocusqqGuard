@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.db.AppDatabase
 import com.example.data.db.entities.AppSettingsEntity
 import com.example.data.db.entities.DailyUsageEntity
-import com.example.data.db.entities.FocusSessionEntity
 import com.example.data.db.entities.ProtectedAppEntity
 import com.example.data.manager.DevicePolicyManagerWrapper
 import com.example.data.manager.OverlayManager
@@ -33,7 +32,6 @@ data class DashboardUiState(
     val protectedApps: List<ProtectedAppEntity> = emptyList(),
     val totalUsedSeconds: Long = 0L,
     val totalLimitSeconds: Long = 120 * 60L,
-    val earnedMinutes: Int = 0,
     val remainingSeconds: Long = 0L,
     val sessionCount: Int = 0,
     val isBlocked: Boolean = false,
@@ -66,16 +64,14 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
     val dashboardUiState: StateFlow<DashboardUiState> = combine(
         protectedApps,
         repository.getDailyUsageForDate(todayDate),
-        repository.getTodayEarnedGamingMinutes(todayDate),
         appSettings,
         _healthStatus
-    ) { apps, usageList, earnedMinsNullable, settingsNullable, health ->
+    ) { apps, usageList, settingsNullable, health ->
         val settings = settingsNullable ?: AppSettingsEntity()
-        val earnedMins = if (settings.allowEarnedTime) (earnedMinsNullable ?: 0) else 0
 
         val primaryApp = apps.firstOrNull { it.packageName == "com.dts.freefireth" } ?: apps.firstOrNull()
         val baseLimitMins = primaryApp?.dailyLimitMinutes ?: 120
-        val totalLimitSeconds = (baseLimitMins * 60L) + (earnedMins * 60L)
+        val totalLimitSeconds = baseLimitMins * 60L
 
         val totalUsed = if (settings.isDebugSimulationEnabled) {
             settings.simulatedUsageSeconds
@@ -92,7 +88,6 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
             protectedApps = apps,
             totalUsedSeconds = totalUsed,
             totalLimitSeconds = totalLimitSeconds,
-            earnedMinutes = earnedMins,
             remainingSeconds = remainingSeconds,
             sessionCount = sessionCount,
             isBlocked = isBlocked,
@@ -128,19 +123,6 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
     fun deleteProtectedApp(packageName: String) {
         viewModelScope.launch {
             repository.deleteProtectedApp(packageName)
-        }
-    }
-
-    fun addFocusSession(subject: String, durationMinutes: Int, earnedGamingMinutes: Int) {
-        viewModelScope.launch {
-            repository.addFocusSession(
-                FocusSessionEntity(
-                    subject = subject,
-                    durationMinutes = durationMinutes,
-                    earnedGamingMinutes = earnedGamingMinutes,
-                    dateString = todayDate
-                )
-            )
         }
     }
 

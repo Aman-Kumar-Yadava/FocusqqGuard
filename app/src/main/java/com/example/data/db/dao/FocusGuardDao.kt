@@ -7,7 +7,6 @@ import androidx.room.Query
 import androidx.room.Update
 import com.example.data.db.entities.AppSettingsEntity
 import com.example.data.db.entities.DailyUsageEntity
-import com.example.data.db.entities.FocusSessionEntity
 import com.example.data.db.entities.GamingSessionEntity
 import com.example.data.db.entities.ProtectedAppEntity
 import kotlinx.coroutines.flow.Flow
@@ -47,22 +46,6 @@ interface FocusGuardDao {
 
     @Query("SELECT * FROM gaming_sessions WHERE dateString = :dateString ORDER BY startTime DESC")
     fun getGamingSessionsForDate(dateString: String): Flow<List<GamingSessionEntity>>
-
-    // Focus Sessions
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertFocusSession(session: FocusSessionEntity)
-
-    @Query("SELECT * FROM focus_sessions ORDER BY timestamp DESC")
-    fun getAllFocusSessions(): Flow<List<FocusSessionEntity>>
-
-    @Query("SELECT * FROM focus_sessions WHERE dateString = :dateString")
-    fun getFocusSessionsForDate(dateString: String): Flow<List<FocusSessionEntity>>
-
-    @Query("SELECT SUM(earnedGamingMinutes) FROM focus_sessions WHERE dateString = :dateString AND isCompleted = 1")
-    fun getEarnedGamingMinutesForDateFlow(dateString: String): Flow<Int?>
-
-    @Query("SELECT SUM(earnedGamingMinutes) FROM focus_sessions WHERE dateString = :dateString AND isCompleted = 1")
-    suspend fun getEarnedGamingMinutesForDate(dateString: String): Int?
 
     // App Settings
     @Query("SELECT * FROM app_settings WHERE id = 1 LIMIT 1")

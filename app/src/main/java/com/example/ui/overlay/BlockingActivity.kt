@@ -19,12 +19,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,7 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.MainActivity
 import com.example.ui.theme.MyApplicationTheme
 
 class BlockingActivity : ComponentActivity() {
@@ -58,14 +54,6 @@ class BlockingActivity : ComponentActivity() {
                 GamingBlockOverlayContent(
                     packageName = packageName,
                     reasonText = reason,
-                    onStartFocusSession = {
-                        val mainIntent = android.content.Intent(this, MainActivity::class.java).apply {
-                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                            putExtra("navigate_to", "focus_session")
-                        }
-                        startActivity(mainIntent)
-                        finish()
-                    },
                     onReturnHome = {
                         val homeIntent = android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
                             addCategory(android.content.Intent.CATEGORY_HOME)
@@ -84,7 +72,6 @@ class BlockingActivity : ComponentActivity() {
 fun GamingBlockOverlayContent(
     packageName: String,
     reasonText: String,
-    onStartFocusSession: () -> Unit,
     onReturnHome: () -> Unit
 ) {
     Box(
@@ -160,7 +147,7 @@ fun GamingBlockOverlayContent(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
-                        text = "Available again tomorrow or earn time with Focus Mode.",
+                        text = "Gaming will be available again tomorrow.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFF9CA3AF),
                         textAlign = TextAlign.Center
@@ -171,29 +158,6 @@ fun GamingBlockOverlayContent(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = onStartFocusSession,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .testTag("block_screen_focus_button"),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6366F1))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MenuBook,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Text(
-                    text = "Start Focus Session",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedButton(
                 onClick = onReturnHome,
                 modifier = Modifier
                     .fillMaxWidth()

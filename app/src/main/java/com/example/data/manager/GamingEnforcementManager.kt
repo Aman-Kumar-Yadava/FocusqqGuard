@@ -63,15 +63,8 @@ class GamingEnforcementManager(
             }
         }
 
-        // 2. Check Daily Usage Allowance + Earned Focus Time
-        val baseLimitSeconds = app.dailyLimitMinutes * 60L
-        val earnedMinutes = if (settings.allowEarnedTime) {
-            repository.getTodayEarnedGamingMinutes(todayDate).first() ?: 0
-        } else {
-            0
-        }
-        val totalAllowanceSeconds = baseLimitSeconds + (earnedMinutes * 60L)
-
+        // 2. Check Daily Usage Allowance
+        val totalAllowanceSeconds = app.dailyLimitMinutes * 60L
         val usedSeconds = usageTrackingManager.getTodayUsageSeconds(packageName)
 
         if (usedSeconds >= totalAllowanceSeconds) {

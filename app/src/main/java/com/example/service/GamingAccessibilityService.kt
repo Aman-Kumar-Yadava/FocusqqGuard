@@ -72,7 +72,7 @@ class GamingAccessibilityService : AccessibilityService() {
                     sessionStartTimeMs = System.currentTimeMillis()
                     startMonitoringSession(packageName)
                 }
-            } else if (activeProtectedPackage != null && packageName != packageName) {
+            } else if (activeProtectedPackage != null) {
                 // Left the protected game
                 stopMonitoringSession()
             }
@@ -98,6 +98,7 @@ class GamingAccessibilityService : AccessibilityService() {
                             BlockReason.Disabled -> "App blocked by guardian."
                         }
                         overlayManager.showBlockingScreen(packageName, reasonText)
+                        stopMonitoringSession()
                     }
                     EnforcementStatus.Allowed -> {
                         // Check approaching limit warnings

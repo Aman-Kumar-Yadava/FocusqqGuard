@@ -14,14 +14,22 @@ class DevicePolicyManagerWrapper(private val context: Context) {
      * Checks if the app is provisioned as Device Owner.
      */
     fun isDeviceOwner(): Boolean {
-        return dpm?.isDeviceOwnerApp(context.packageName) == true
+        return try {
+            dpm?.isDeviceOwnerApp(context.packageName) == true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     /**
      * Checks if the Device Admin Receiver is active.
      */
     fun isAdminActive(): Boolean {
-        return dpm?.isAdminActive(adminComponent) == true
+        return try {
+            dpm?.isAdminActive(adminComponent) == true
+        } catch (e: Exception) {
+            false
+        }
     }
 
     /**
