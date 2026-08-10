@@ -94,17 +94,6 @@ fun ProtectionHealthScreen(
                 })
             }
         )
-
-        PermissionStatusCard(
-            title = "Display Over Other Apps (Overlay)",
-            isActive = health.hasOverlayPermission,
-            description = "Required to present the full-screen blocking UI when daily gaming limits are reached.",
-            onGrantClick = {
-                context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                })
-            }
-        )
     }
 }
 

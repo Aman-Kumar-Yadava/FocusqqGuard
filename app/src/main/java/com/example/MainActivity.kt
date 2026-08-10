@@ -17,6 +17,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        com.example.worker.EnforcementWorker.schedulePeriodic(this)
+        com.example.worker.EnforcementWorker.runImmediate(this)
+
         setContent {
             MyApplicationTheme {
                 FocusGuardApp(
@@ -29,5 +32,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.refreshHealthStatus()
+        com.example.worker.EnforcementWorker.runImmediate(this)
     }
+
 }

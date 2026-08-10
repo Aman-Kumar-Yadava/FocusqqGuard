@@ -21,5 +21,7 @@ data class AppSettingsEntity(
     val isDebugSimulationEnabled: Boolean = false,
     val simulatedUsageSeconds: Long = 0L,
     val isInstallationBlocked: Boolean = false,
-    val isUninstallationBlocked: Boolean = false
+    val isUninstallationBlocked: Boolean = false,
+    val requirePinOnOpen: Boolean = true,
+    val policyGeneration: Int = 0
 )

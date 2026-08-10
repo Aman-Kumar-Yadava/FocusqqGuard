@@ -18,7 +18,7 @@ import com.example.data.db.entities.ProtectedAppEntity
         GamingSessionEntity::class,
         AppSettingsEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -47,8 +47,8 @@ abstract class AppDatabase : RoomDatabase() {
                         )
                         db.execSQL(
                             "INSERT OR REPLACE INTO app_settings " +
-                            "(id, guardianPinHash, guardianPinSalt, isPinSet, globalNightLockEnabled, nightLockStartHour, nightLockStartMinute, nightLockEndHour, nightLockEndMinute, warning30mSent, warning15mSent, warning5mSent, warning1mSent, isDebugSimulationEnabled, simulatedUsageSeconds, isInstallationBlocked, isUninstallationBlocked) " +
-                            "VALUES (1, '', '', 0, 1, 22, 30, 7, 0, 0, 0, 0, 0, 0, 0, 0)"
+                            "(id, guardianPinHash, guardianPinSalt, isPinSet, globalNightLockEnabled, nightLockStartHour, nightLockStartMinute, nightLockEndHour, nightLockEndMinute, warning30mSent, warning15mSent, warning5mSent, warning1mSent, isDebugSimulationEnabled, simulatedUsageSeconds, isInstallationBlocked, isUninstallationBlocked, requirePinOnOpen, policyGeneration) " +
+                            "VALUES (1, '', '', 0, 1, 22, 30, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0)"
                         )
                     }
                 })

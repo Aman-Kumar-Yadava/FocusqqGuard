@@ -24,9 +24,9 @@ import kotlinx.coroutines.launch
 
 data class HealthStatusState(
     val hasUsageAccess: Boolean = false,
-    val hasOverlayPermission: Boolean = false,
     val isDeviceOwner: Boolean = false,
-    val isAdminActive: Boolean = false
+    val isAdminActive: Boolean = false,
+    val hasExactAlarmPermission: Boolean = false
 )
 
 data class DashboardUiState(
@@ -64,7 +64,8 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
             repository,
             usageTrackingManager,
             devicePolicyController,
-            gamingBlockOverlayManager
+            gamingBlockOverlayManager,
+            application
         )
         installedAppDetector = InstalledAppDetector(application)
     }
@@ -122,9 +123,9 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
     private fun getHealthStatus(): HealthStatusState {
         return HealthStatusState(
             hasUsageAccess = usageTrackingManager.hasUsageAccessPermission(),
-            hasOverlayPermission = overlayManager.hasOverlayPermission(),
             isDeviceOwner = devicePolicyController.isDeviceOwner(),
-            isAdminActive = devicePolicyController.isAdminActive()
+            isAdminActive = devicePolicyController.isAdminActive(),
+            hasExactAlarmPermission = com.example.data.manager.EnforcementAlarmScheduler.canScheduleExactAlarms(getApplication())
         )
     }
 
@@ -138,7 +139,10 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
             val success = devicePolicyController.setAppInstallationBlocked(blocked)
             if (success || !devicePolicyController.isDeviceOwner()) {
                 val settings = repository.getAppSettings()
-                repository.updateAppSettings(settings.copy(isInstallationBlocked = blocked))
+                repository.updateAppSettings(settings.copy(
+                    isInstallationBlocked = blocked,
+                    policyGeneration = settings.policyGeneration + 1
+                ))
             }
         }
     }
@@ -147,7 +151,10 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             val success = devicePolicyController.setAppUninstallationBlocked(blocked)
             val settings = repository.getAppSettings()
-            repository.updateAppSettings(settings.copy(isUninstallationBlocked = blocked))
+            repository.updateAppSettings(settings.copy(
+                isUninstallationBlocked = blocked,
+                policyGeneration = settings.policyGeneration + 1
+            ))
             val protectedAppsList = dashboardUiState.value.protectedApps
             protectedAppsList.forEach { app ->
                 devicePolicyController.setUninstallBlockedForPackage(app.packageName, blocked)
@@ -161,6 +168,9 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
             if (dashboardUiState.value.appSettings.isUninstallationBlocked) {
                 devicePolicyController.setUninstallBlockedForPackage(app.packageName, true)
             }
+            val settings = repository.getAppSettings()
+            repository.updateAppSettings(settings.copy(policyGeneration = settings.policyGeneration + 1))
+            gamingEnforcementManager.evaluateAndEnforceAll()
         }
     }
 
@@ -168,12 +178,17 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             repository.deleteProtectedApp(packageName)
             devicePolicyController.setUninstallBlockedForPackage(packageName, false)
+            val settings = repository.getAppSettings()
+            repository.updateAppSettings(settings.copy(policyGeneration = settings.policyGeneration + 1))
+            gamingEnforcementManager.evaluateAndEnforceAll()
         }
     }
 
     fun updateSettings(settings: AppSettingsEntity) {
         viewModelScope.launch {
-            repository.updateAppSettings(settings)
+            val currentGen = repository.getAppSettings().policyGeneration
+            repository.updateAppSettings(settings.copy(policyGeneration = currentGen + 1))
+            gamingEnforcementManager.evaluateAndEnforceAll()
         }
     }
 
@@ -203,6 +218,7 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
                 simulatedUsageSeconds = current + (additionalMinutes * 60L)
             )
             repository.updateAppSettings(updated)
+            gamingEnforcementManager.evaluateAndEnforceAll()
         }
     }
 
@@ -214,6 +230,8 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
                 simulatedUsageSeconds = 0L
             )
             repository.updateAppSettings(updated)
+            gamingEnforcementManager.evaluateAndEnforceAll()
         }
     }
+
 }

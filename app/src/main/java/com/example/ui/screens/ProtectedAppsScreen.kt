@@ -1,6 +1,8 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -264,7 +266,9 @@ fun DetectInstalledAppsDialog(
     onDismiss: () -> Unit,
     onSelectApp: (InstalledAppInfo) -> Unit
 ) {
+    BackHandler { onDismiss() }
     var searchQuery by remember { mutableStateOf("") }
+
 
     val filteredApps = remember(installedApps, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -397,7 +401,9 @@ fun AddOrEditAppDialog(
     onDismiss: () -> Unit,
     onConfirm: (ProtectedAppEntity) -> Unit
 ) {
+    BackHandler { onDismiss() }
     var name by remember { mutableStateOf(existingApp?.displayName ?: "Free Fire") }
+
     var pkg by remember { mutableStateOf(existingApp?.packageName ?: "com.dts.freefireth") }
     var dailyLimit by remember { mutableStateOf(existingApp?.dailyLimitMinutes?.toString() ?: "120") }
     var continuousLimit by remember { mutableStateOf(existingApp?.continuousLimitMinutes?.toString() ?: "45") }

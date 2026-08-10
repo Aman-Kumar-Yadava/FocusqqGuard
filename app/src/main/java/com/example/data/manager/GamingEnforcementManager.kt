@@ -2,6 +2,7 @@ package com.example.data.manager
 
 import com.example.data.db.entities.ProtectedAppEntity
 import com.example.data.repository.FocusGuardRepository
+import kotlinx.coroutines.flow.firstOrNull
 import java.util.Calendar
 
 sealed class BlockReason {
@@ -20,8 +21,57 @@ class GamingEnforcementManager(
     private val repository: FocusGuardRepository,
     private val usageTrackingManager: UsageTrackingManager,
     private val devicePolicyController: DevicePolicyController,
-    private val overlayManager: GamingBlockOverlayManager
+    private val overlayManager: GamingBlockOverlayManager,
+    private val context: android.content.Context? = null
 ) {
+
+    private suspend fun calculateNextPolicyBoundaryDelays(app: ProtectedAppEntity): List<Long> {
+        if (!app.isEnabled) return emptyList()
+        val settings = repository.getAppSettings()
+
+        val delays = mutableListOf<Long>()
+        val now = Calendar.getInstance()
+
+        // 1. Remaining Daily Allowance
+        val totalAllowanceSeconds = app.dailyLimitMinutes * 60L
+        val usedSeconds = usageTrackingManager.getTodayUsageSeconds(app.packageName)
+        val remainingDailySeconds = totalAllowanceSeconds - usedSeconds
+        if (remainingDailySeconds > 0) {
+            delays.add(remainingDailySeconds * 1000L)
+        }
+
+        // 2. Schedule / Night Lock start and end time
+        if (settings.globalNightLockEnabled || app.isScheduleEnabled) {
+            val startHour = if (app.isScheduleEnabled) app.allowedEndHour else settings.nightLockStartHour
+            val startMin = if (app.isScheduleEnabled) app.allowedEndMinute else settings.nightLockStartMinute
+            val endHour = if (app.isScheduleEnabled) app.allowedStartHour else settings.nightLockEndHour
+            val endMin = if (app.isScheduleEnabled) app.allowedStartMinute else settings.nightLockEndMinute
+
+            val startCal = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, startHour)
+                set(Calendar.MINUTE, startMin)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            if (startCal.timeInMillis <= now.timeInMillis) {
+                startCal.add(Calendar.DAY_OF_YEAR, 1)
+            }
+            delays.add(startCal.timeInMillis - now.timeInMillis)
+
+            val endCal = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, endHour)
+                set(Calendar.MINUTE, endMin)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            if (endCal.timeInMillis <= now.timeInMillis) {
+                endCal.add(Calendar.DAY_OF_YEAR, 1)
+            }
+            delays.add(endCal.timeInMillis - now.timeInMillis)
+        }
+
+        return delays.filter { it > 0 }
+    }
 
     suspend fun evaluateStatus(
         packageName: String,
@@ -112,4 +162,59 @@ class GamingEnforcementManager(
         }
         return status
     }
+
+    suspend fun evaluateAndEnforceAll(targetContext: android.content.Context? = null): Map<String, EnforcementStatus> {
+        val settings = repository.getAppSettings()
+        val results = mutableMapOf<String, EnforcementStatus>()
+        val activeContext = targetContext ?: context
+        
+        // Enforce uninstall protection on FocusGuard itself if configured
+        if (devicePolicyController.isDeviceOwner() && settings.isUninstallationBlocked) {
+            devicePolicyController.setAppUninstallationBlocked(true)
+        }
+
+        // Fetch protected apps
+        val protectedAppsList = repository.protectedApps.firstOrNull() ?: emptyList()
+        val upcomingDelays = mutableListOf<Long>()
+        
+        // Always add next midnight as a boundary to reset usage stats
+        val now = Calendar.getInstance()
+        val nextMidnight = Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_YEAR, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        upcomingDelays.add(nextMidnight.timeInMillis - now.timeInMillis)
+
+        for (app in protectedAppsList) {
+            val status = evaluateStatus(app.packageName)
+            results[app.packageName] = status
+
+            if (devicePolicyController.isDeviceOwner()) {
+                val shouldSuspend = status is EnforcementStatus.Blocked
+                devicePolicyController.setPackageSuspended(app.packageName, shouldSuspend)
+                
+                if (settings.isUninstallationBlocked) {
+                    devicePolicyController.setUninstallBlockedForPackage(app.packageName, true)
+                }
+            }
+
+            upcomingDelays.addAll(calculateNextPolicyBoundaryDelays(app))
+        }
+
+        activeContext?.let { ctx ->
+            val shortestDelayMs = upcomingDelays.minOrNull()
+            if (shortestDelayMs != null && shortestDelayMs > 0) {
+                val triggerDelay = shortestDelayMs.coerceAtLeast(5000L)
+                EnforcementAlarmScheduler.scheduleExactAlarm(ctx, triggerDelay, settings.policyGeneration)
+            } else {
+                EnforcementAlarmScheduler.cancelAlarm(ctx)
+            }
+        }
+
+        return results
+    }
 }
+

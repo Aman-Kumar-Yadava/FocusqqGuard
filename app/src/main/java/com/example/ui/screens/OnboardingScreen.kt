@@ -20,7 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Button
@@ -173,7 +173,7 @@ fun OnboardingScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "FocusGuard uses Device Owner, Usage Access, and Overlay display to enforce limits without background polling.",
+                text = "FocusGuard uses Device Owner and Usage Access to enforce gaming limits without background battery drain.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -184,7 +184,7 @@ fun OnboardingScreen(
             // Capability 1: Device Owner
             OnboardingStepCard(
                 title = "1. Device Owner",
-                description = "Provides official DevicePolicyManager application-management privileges.",
+                description = "Provides official DevicePolicyManager application-management privileges to suspend protected apps when limits are reached.",
                 isGranted = health.isDeviceOwner,
                 onGrant = null
             )
@@ -203,20 +203,6 @@ fun OnboardingScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Capability 3: Display Over Other Apps
-            OnboardingStepCard(
-                title = "3. Display Over Other Apps",
-                description = "Displays the full-screen blocking interface above protected games when limits are reached.",
-                isGranted = health.hasOverlayPermission,
-                onGrant = {
-                    context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    })
-                }
-            )
-
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
@@ -229,7 +215,7 @@ fun OnboardingScreen(
             ) {
                 Text("Continue to Dashboard", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
                 Spacer(modifier = Modifier.width(8.dp))
-                Icon(Icons.Default.ArrowForward, contentDescription = null)
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
             }
         }
     }

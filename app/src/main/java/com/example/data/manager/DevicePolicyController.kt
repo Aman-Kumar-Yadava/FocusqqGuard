@@ -136,7 +136,7 @@ class DevicePolicyController(private val context: Context) {
         } else {
             listOf(
                 "Usage Access Stats Monitoring (UsageStatsManager)",
-                "Display Over Other Apps Blocking Interface (WindowManager / TYPE_APPLICATION_OVERLAY)",
+                "Full-Screen Blocking Interface (BlockingActivity)",
                 "Guardian PIN Configuration Lock"
             )
         }

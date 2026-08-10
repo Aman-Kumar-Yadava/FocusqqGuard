@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -72,10 +73,13 @@ fun DeviceManagementScreen(
     val scrollState = rememberScrollState()
 
     var showPinDialog by remember { mutableStateOf(false) }
+    var showUninstallPinDialog by remember { mutableStateOf(false) }
+    var pendingUninstallPolicyState by remember { mutableStateOf(false) }
     var showConfirmDialog by remember { mutableStateOf(false) }
     var pinInput by remember { mutableStateOf("") }
     var pinError by remember { mutableStateOf<String?>(null) }
     var removalMessage by remember { mutableStateOf<String?>(null) }
+
 
     Column(
         modifier = Modifier
@@ -217,8 +221,18 @@ fun DeviceManagementScreen(
                     }
                     Switch(
                         checked = appSettings.isUninstallationBlocked,
-                        onCheckedChange = { onSetUninstallationBlocked(it) }
+                        onCheckedChange = { newState ->
+                            if (appSettings.isPinSet) {
+                                pendingUninstallPolicyState = newState
+                                pinInput = ""
+                                pinError = null
+                                showUninstallPinDialog = true
+                            } else {
+                                onSetUninstallationBlocked(newState)
+                            }
+                        }
                     )
+
                 }
             }
         }
@@ -274,6 +288,11 @@ fun DeviceManagementScreen(
 
     // PIN Authentication Dialog
     if (showPinDialog) {
+        BackHandler {
+            showPinDialog = false
+            pinInput = ""
+            pinError = null
+        }
         AlertDialog(
             onDismissRequest = { showPinDialog = false },
             title = { Text("Guardian Authentication") },
@@ -320,8 +339,62 @@ fun DeviceManagementScreen(
         )
     }
 
+    // PIN Authentication for Uninstall Policy Switch
+    if (showUninstallPinDialog) {
+        BackHandler {
+            showUninstallPinDialog = false
+            pinInput = ""
+            pinError = null
+        }
+        AlertDialog(
+            onDismissRequest = { showUninstallPinDialog = false },
+            title = { Text("Guardian Authentication") },
+            text = {
+                Column {
+                    Text("Enter Guardian PIN to modify Uninstall Protection Policy:")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = pinInput,
+                        onValueChange = { pinInput = it; pinError = null },
+                        label = { Text("Guardian PIN") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth().testTag("uninstall_policy_pin_input")
+                    )
+                    if (pinError != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(pinError!!, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        scope.launch {
+                            val verified = onVerifyPin(pinInput)
+                            if (verified) {
+                                showUninstallPinDialog = false
+                                onSetUninstallationBlocked(pendingUninstallPolicyState)
+                            } else {
+                                pinError = "Incorrect Guardian PIN."
+                            }
+                        }
+                    }
+                ) {
+                    Text("Verify")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUninstallPinDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     // Confirmation Dialog
     if (showConfirmDialog) {
+        BackHandler { showConfirmDialog = false }
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
             title = { Text("Remove FocusGuard's Device Owner status?") },
@@ -352,4 +425,5 @@ fun DeviceManagementScreen(
             }
         )
     }
+
 }
