@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">FocusGuard</string>
+    <string name="accessibility_service_description">Detects when protected games like Free Fire are active in order to enforce daily limit allowances and sleep schedules.</string>
+</resources>

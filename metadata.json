@@ -1,0 +1,6 @@
+{
+  "name": "FocusGuard",
+  "description": "Productivity and gaming allowance manager with usage tracking and focus sessions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
