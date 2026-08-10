@@ -5,7 +5,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import com.example.ui.Destinations
 import com.example.ui.FocusGuardApp
 import com.example.ui.FocusGuardViewModel
 import com.example.ui.theme.MyApplicationTheme
@@ -21,8 +20,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MyApplicationTheme {
                 FocusGuardApp(
-                    viewModel = viewModel,
-                    initialRoute = Destinations.DASHBOARD
+                    viewModel = viewModel
                 )
             }
         }

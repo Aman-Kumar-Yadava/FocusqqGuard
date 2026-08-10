@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AppBlocking
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,14 +48,15 @@ object Destinations {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FocusGuardApp(
-    viewModel: FocusGuardViewModel,
-    initialRoute: String = Destinations.DASHBOARD
+    viewModel: FocusGuardViewModel
 ) {
     val navController = rememberNavController()
     val dashboardState by viewModel.dashboardUiState.collectAsStateWithLifecycle()
     val healthStatus by viewModel.healthStatus.collectAsStateWithLifecycle()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route ?: Destinations.DASHBOARD
+
+    val startRoute = if (!dashboardState.appSettings.isPinSet) Destinations.ONBOARDING else Destinations.DASHBOARD
 
     Scaffold(
         topBar = {
@@ -68,7 +68,7 @@ fun FocusGuardApp(
                                 Destinations.DASHBOARD -> "FocusGuard"
                                 Destinations.PROTECTED_APPS -> "Protected Apps"
                                 Destinations.STATISTICS -> "Statistics"
-                                Destinations.HEALTH -> "Protection Health"
+                                Destinations.HEALTH -> "Protection Setup"
                                 Destinations.DEVICE_MGMT -> "Device Management"
                                 Destinations.SCHEDULE -> "Night Schedule"
                                 Destinations.GUARDIAN_SETTINGS -> "Guardian Settings"
@@ -123,7 +123,7 @@ fun FocusGuardApp(
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = initialRoute,
+            startDestination = startRoute,
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Destinations.DASHBOARD) {
@@ -145,6 +145,7 @@ fun FocusGuardApp(
             composable(Destinations.PROTECTED_APPS) {
                 ProtectedAppsScreen(
                     protectedApps = dashboardState.protectedApps,
+                    onGetInstalledApps = { viewModel.getInstalledNonSystemApps() },
                     onSaveApp = { viewModel.saveProtectedApp(it) },
                     onDeleteApp = { viewModel.deleteProtectedApp(it) }
                 )
@@ -166,7 +167,11 @@ fun FocusGuardApp(
 
             composable(Destinations.DEVICE_MGMT) {
                 DeviceManagementScreen(
-                    devicePolicyWrapper = viewModel.devicePolicyWrapper
+                    appSettings = dashboardState.appSettings,
+                    devicePolicyWrapper = viewModel.devicePolicyWrapper,
+                    onSetUninstallationBlocked = { viewModel.setAppUninstallationBlocked(it) },
+                    onVerifyPin = { viewModel.verifyPin(it) },
+                    onRemoveDeviceOwner = { viewModel.removeDeviceOwner() }
                 )
             }
 
@@ -180,6 +185,7 @@ fun FocusGuardApp(
             composable(Destinations.GUARDIAN_SETTINGS) {
                 GuardianSettingsScreen(
                     appSettings = dashboardState.appSettings,
+                    onVerifyPin = { viewModel.verifyPin(it) },
                     onSetPin = { viewModel.setGuardianPin(it) },
                     onSaveSettings = { viewModel.updateSettings(it) }
                 )
@@ -188,6 +194,8 @@ fun FocusGuardApp(
             composable(Destinations.ONBOARDING) {
                 OnboardingScreen(
                     health = healthStatus,
+                    isPinSet = dashboardState.appSettings.isPinSet,
+                    onSetPin = { viewModel.setGuardianPin(it) },
                     onCompleteOnboarding = {
                         navController.navigate(Destinations.DASHBOARD) {
                             popUpTo(Destinations.ONBOARDING) { inclusive = true }

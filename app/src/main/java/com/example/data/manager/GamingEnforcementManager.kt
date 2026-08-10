@@ -2,7 +2,6 @@ package com.example.data.manager
 
 import com.example.data.db.entities.ProtectedAppEntity
 import com.example.data.repository.FocusGuardRepository
-import kotlinx.coroutines.flow.first
 import java.util.Calendar
 
 sealed class BlockReason {
@@ -19,7 +18,9 @@ sealed class EnforcementStatus {
 
 class GamingEnforcementManager(
     private val repository: FocusGuardRepository,
-    private val usageTrackingManager: UsageTrackingManager
+    private val usageTrackingManager: UsageTrackingManager,
+    private val devicePolicyController: DevicePolicyController,
+    private val overlayManager: GamingBlockOverlayManager
 ) {
 
     suspend fun evaluateStatus(
@@ -30,7 +31,6 @@ class GamingEnforcementManager(
         if (!app.isEnabled) return EnforcementStatus.Allowed
 
         val settings = repository.getAppSettings()
-        val todayDate = repository.getTodayDateString()
 
         // 1. Check Night Lock Schedule
         if (settings.globalNightLockEnabled || app.isScheduleEnabled) {
@@ -44,7 +44,6 @@ class GamingEnforcementManager(
             val endMinutes = (if (app.isScheduleEnabled) app.allowedStartHour else settings.nightLockEndHour) * 60 +
                     (if (app.isScheduleEnabled) app.allowedStartMinute else settings.nightLockEndMinute)
 
-            // Night mode is usually late evening to early morning (e.g. 22:30 to 07:00)
             val isNightBlocked = if (startMinutes > endMinutes) {
                 currentMinutesOfDay >= startMinutes || currentMinutesOfDay < endMinutes
             } else {
@@ -88,5 +87,29 @@ class GamingEnforcementManager(
         }
 
         return EnforcementStatus.Allowed
+    }
+
+    suspend fun checkAndEnforceApp(packageName: String): EnforcementStatus {
+        val status = evaluateStatus(packageName)
+        when (status) {
+            is EnforcementStatus.Blocked -> {
+                if (devicePolicyController.isDeviceOwner()) {
+                    devicePolicyController.setPackageSuspended(packageName, true)
+                }
+                val reasonText = when (val reason = status.reason) {
+                    is BlockReason.DailyLimitExceeded -> "Daily limit of ${reason.totalLimitSeconds / 60}m reached."
+                    is BlockReason.ContinuousLimitExceeded -> "Continuous limit reached."
+                    is BlockReason.NightScheduleActive -> "Night lock is active."
+                    is BlockReason.Disabled -> "App blocked by guardian."
+                }
+                overlayManager.showBlockingScreen(packageName, reasonText)
+            }
+            is EnforcementStatus.Allowed -> {
+                if (devicePolicyController.isDeviceOwner()) {
+                    devicePolicyController.setPackageSuspended(packageName, false)
+                }
+            }
+        }
+        return status
     }
 }

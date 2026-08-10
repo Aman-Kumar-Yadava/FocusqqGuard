@@ -7,6 +7,7 @@ import androidx.room.PrimaryKey
 data class AppSettingsEntity(
     @PrimaryKey val id: Int = 1,
     val guardianPinHash: String = "",
+    val guardianPinSalt: String = "",
     val isPinSet: Boolean = false,
     val globalNightLockEnabled: Boolean = true,
     val nightLockStartHour: Int = 22,
@@ -18,5 +19,7 @@ data class AppSettingsEntity(
     val warning5mSent: Boolean = false,
     val warning1mSent: Boolean = false,
     val isDebugSimulationEnabled: Boolean = false,
-    val simulatedUsageSeconds: Long = 0L
+    val simulatedUsageSeconds: Long = 0L,
+    val isInstallationBlocked: Boolean = false,
+    val isUninstallationBlocked: Boolean = false
 )

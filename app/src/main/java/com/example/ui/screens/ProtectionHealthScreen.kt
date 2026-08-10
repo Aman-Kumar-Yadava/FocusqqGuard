@@ -1,6 +1,5 @@
 package com.example.ui.screens
 
-import android.content.Context
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.background
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -64,11 +62,11 @@ fun ProtectionHealthScreen(
         ) {
             Column {
                 Text(
-                    text = "Protection Health",
+                    text = "Protection Setup & Health",
                     style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
-                    text = "System permissions and service status",
+                    text = "Core device capabilities status",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -80,9 +78,16 @@ fun ProtectionHealthScreen(
         }
 
         PermissionStatusCard(
+            title = "Device Owner Status",
+            isActive = health.isDeviceOwner,
+            description = "Provides strong application management & enforcement capabilities without polling.",
+            onGrantClick = null
+        )
+
+        PermissionStatusCard(
             title = "Usage Access",
             isActive = health.hasUsageAccess,
-            description = "Allows FocusGuard to track today's gaming time and verify usage stats.",
+            description = "FocusGuard uses Usage Access to measure how long protected games are being used. This information stays on this device.",
             onGrantClick = {
                 context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -91,32 +96,14 @@ fun ProtectionHealthScreen(
         )
 
         PermissionStatusCard(
-            title = "Accessibility Service",
-            isActive = health.hasAccessibility,
-            description = "Detects when protected apps like Free Fire become active so daily limits can be enforced.",
-            onGrantClick = {
-                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                })
-            }
-        )
-
-        PermissionStatusCard(
             title = "Display Over Other Apps (Overlay)",
             isActive = health.hasOverlayPermission,
-            description = "Required to present the full-screen blocking UI when daily limits are reached.",
+            description = "Required to present the full-screen blocking UI when daily gaming limits are reached.",
             onGrantClick = {
                 context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 })
             }
-        )
-
-        PermissionStatusCard(
-            title = "Device Owner Status",
-            isActive = health.isDeviceOwner,
-            description = "Optional advanced managed-device mode provisioned via ADB for enterprise/family management.",
-            onGrantClick = null
         )
     }
 }

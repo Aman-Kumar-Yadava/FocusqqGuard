@@ -7,6 +7,7 @@ import com.example.data.db.entities.GamingSessionEntity
 import com.example.data.db.entities.ProtectedAppEntity
 import kotlinx.coroutines.flow.Flow
 import java.security.MessageDigest
+import java.security.SecureRandom
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -67,21 +68,32 @@ class FocusGuardRepository(private val dao: FocusGuardDao) {
         dao.insertOrUpdateAppSettings(settings)
     }
 
-    fun hashPin(pin: String): String {
-        val bytes = MessageDigest.getInstance("SHA-256").digest(pin.toByteArray())
+    fun hashPinWithSalt(pin: String, salt: String): String {
+        val bytes = MessageDigest.getInstance("SHA-256").digest((salt + pin).toByteArray())
         return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun generateSalt(): String {
+        val random = SecureRandom()
+        val saltBytes = ByteArray(16)
+        random.nextBytes(saltBytes)
+        return saltBytes.joinToString("") { "%02x".format(it) }
     }
 
     suspend fun verifyPin(pin: String): Boolean {
         val settings = getAppSettings()
-        if (!settings.isPinSet) return true // No PIN required if not set
-        return settings.guardianPinHash == hashPin(pin)
+        if (!settings.isPinSet) return true
+        val computed = hashPinWithSalt(pin, settings.guardianPinSalt)
+        return computed == settings.guardianPinHash
     }
 
     suspend fun setGuardianPin(pin: String) {
         val settings = getAppSettings()
+        val newSalt = generateSalt()
+        val newHash = hashPinWithSalt(pin, newSalt)
         val updated = settings.copy(
-            guardianPinHash = hashPin(pin),
+            guardianPinHash = newHash,
+            guardianPinSalt = newSalt,
             isPinSet = true
         )
         dao.insertOrUpdateAppSettings(updated)

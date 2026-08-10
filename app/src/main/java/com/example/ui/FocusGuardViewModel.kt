@@ -5,13 +5,16 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.db.AppDatabase
 import com.example.data.db.entities.AppSettingsEntity
-import com.example.data.db.entities.DailyUsageEntity
 import com.example.data.db.entities.ProtectedAppEntity
+import com.example.data.manager.DevicePolicyController
 import com.example.data.manager.DevicePolicyManagerWrapper
+import com.example.data.manager.GamingBlockOverlayManager
+import com.example.data.manager.GamingEnforcementManager
+import com.example.data.manager.InstalledAppDetector
+import com.example.data.manager.InstalledAppInfo
 import com.example.data.manager.OverlayManager
 import com.example.data.manager.UsageTrackingManager
 import com.example.data.repository.FocusGuardRepository
-import com.example.service.GamingAccessibilityService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +24,6 @@ import kotlinx.coroutines.launch
 
 data class HealthStatusState(
     val hasUsageAccess: Boolean = false,
-    val hasAccessibility: Boolean = false,
     val hasOverlayPermission: Boolean = false,
     val isDeviceOwner: Boolean = false,
     val isAdminActive: Boolean = false
@@ -41,17 +43,30 @@ data class DashboardUiState(
 
 class FocusGuardViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository: FocusGuardRepository
+    val repository: FocusGuardRepository
     val usageTrackingManager: UsageTrackingManager
     val overlayManager: OverlayManager
+    val gamingBlockOverlayManager: GamingBlockOverlayManager
+    val devicePolicyController: DevicePolicyController
     val devicePolicyWrapper: DevicePolicyManagerWrapper
+    val gamingEnforcementManager: GamingEnforcementManager
+    val installedAppDetector: InstalledAppDetector
 
     init {
         val db = AppDatabase.getInstance(application)
         repository = FocusGuardRepository(db.focusGuardDao())
         usageTrackingManager = UsageTrackingManager(application, repository)
         overlayManager = OverlayManager(application)
+        gamingBlockOverlayManager = GamingBlockOverlayManager(application)
+        devicePolicyController = DevicePolicyController(application)
         devicePolicyWrapper = DevicePolicyManagerWrapper(application)
+        gamingEnforcementManager = GamingEnforcementManager(
+            repository,
+            usageTrackingManager,
+            devicePolicyController,
+            gamingBlockOverlayManager
+        )
+        installedAppDetector = InstalledAppDetector(application)
     }
 
     private val _healthStatus = MutableStateFlow(getHealthStatus())
@@ -107,22 +122,52 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
     private fun getHealthStatus(): HealthStatusState {
         return HealthStatusState(
             hasUsageAccess = usageTrackingManager.hasUsageAccessPermission(),
-            hasAccessibility = GamingAccessibilityService.isServiceRunning,
             hasOverlayPermission = overlayManager.hasOverlayPermission(),
-            isDeviceOwner = devicePolicyWrapper.isDeviceOwner(),
-            isAdminActive = devicePolicyWrapper.isAdminActive()
+            isDeviceOwner = devicePolicyController.isDeviceOwner(),
+            isAdminActive = devicePolicyController.isAdminActive()
         )
+    }
+
+    fun getInstalledNonSystemApps(): List<InstalledAppInfo> {
+        val protectedPkgs = dashboardUiState.value.protectedApps.map { it.packageName }.toSet()
+        return installedAppDetector.getInstalledNonSystemApps(protectedPkgs)
+    }
+
+    fun setAppInstallationBlocked(blocked: Boolean) {
+        viewModelScope.launch {
+            val success = devicePolicyController.setAppInstallationBlocked(blocked)
+            if (success || !devicePolicyController.isDeviceOwner()) {
+                val settings = repository.getAppSettings()
+                repository.updateAppSettings(settings.copy(isInstallationBlocked = blocked))
+            }
+        }
+    }
+
+    fun setAppUninstallationBlocked(blocked: Boolean) {
+        viewModelScope.launch {
+            val success = devicePolicyController.setAppUninstallationBlocked(blocked)
+            val settings = repository.getAppSettings()
+            repository.updateAppSettings(settings.copy(isUninstallationBlocked = blocked))
+            val protectedAppsList = dashboardUiState.value.protectedApps
+            protectedAppsList.forEach { app ->
+                devicePolicyController.setUninstallBlockedForPackage(app.packageName, blocked)
+            }
+        }
     }
 
     fun saveProtectedApp(app: ProtectedAppEntity) {
         viewModelScope.launch {
             repository.saveProtectedApp(app)
+            if (dashboardUiState.value.appSettings.isUninstallationBlocked) {
+                devicePolicyController.setUninstallBlockedForPackage(app.packageName, true)
+            }
         }
     }
 
     fun deleteProtectedApp(packageName: String) {
         viewModelScope.launch {
             repository.deleteProtectedApp(packageName)
+            devicePolicyController.setUninstallBlockedForPackage(packageName, false)
         }
     }
 
@@ -135,11 +180,18 @@ class FocusGuardViewModel(application: Application) : AndroidViewModel(applicati
     fun setGuardianPin(pin: String) {
         viewModelScope.launch {
             repository.setGuardianPin(pin)
+            refreshHealthStatus()
         }
     }
 
     suspend fun verifyPin(pin: String): Boolean {
         return repository.verifyPin(pin)
+    }
+
+    fun removeDeviceOwner(): Boolean {
+        val success = devicePolicyController.removeDeviceOwner()
+        refreshHealthStatus()
+        return success
     }
 
     fun incrementSimulatedUsage(additionalMinutes: Long) {

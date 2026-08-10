@@ -10,9 +10,6 @@ import com.example.data.db.entities.AppSettingsEntity
 import com.example.data.db.entities.DailyUsageEntity
 import com.example.data.db.entities.GamingSessionEntity
 import com.example.data.db.entities.ProtectedAppEntity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Database(
     entities = [
@@ -21,7 +18,7 @@ import kotlinx.coroutines.launch
         GamingSessionEntity::class,
         AppSettingsEntity::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -50,8 +47,8 @@ abstract class AppDatabase : RoomDatabase() {
                         )
                         db.execSQL(
                             "INSERT OR REPLACE INTO app_settings " +
-                            "(id, guardianPinHash, isPinSet, globalNightLockEnabled, nightLockStartHour, nightLockStartMinute, nightLockEndHour, nightLockEndMinute, warning30mSent, warning15mSent, warning5mSent, warning1mSent, isDebugSimulationEnabled, simulatedUsageSeconds) " +
-                            "VALUES (1, '', 0, 1, 22, 30, 7, 0, 0, 0, 0, 0, 0, 0)"
+                            "(id, guardianPinHash, guardianPinSalt, isPinSet, globalNightLockEnabled, nightLockStartHour, nightLockStartMinute, nightLockEndHour, nightLockEndMinute, warning30mSent, warning15mSent, warning5mSent, warning1mSent, isDebugSimulationEnabled, simulatedUsageSeconds, isInstallationBlocked, isUninstallationBlocked) " +
+                            "VALUES (1, '', '', 0, 1, 22, 30, 7, 0, 0, 0, 0, 0, 0, 0, 0)"
                         )
                     }
                 })
